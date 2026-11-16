@@ -1,0 +1,75 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+const html = fs.readFileSync(new URL('../docs/index.html', import.meta.url), 'utf8');
+const scriptMatch = html.match(/<script>([\s\S]*?)fetch\(`bandsheet-data\.json\?v=\$\{Date\.now\(\)\}`/);
+assert.ok(scriptMatch, 'Could not find inline bandsheet script before data fetch');
+assert.ok(!html.includes('id="free-weekends"'), 'Availability text list should not render under the calendar');
+assert.ok(!html.includes("addWeekendsByMonth('free-weekends'"), 'Availability text renderer should not be called');
+assert.ok(html.includes('href="mailto:neonblondevc@gmail.com"'), 'Bookings email should be a mail link');
+assert.ok(html.includes('href="tel:+18184262710"'), 'Questions phone number should be a tap-to-call link');
+assert.ok(html.includes("fetch(`bandsheet-data.json?v=${Date.now()}`"), 'Bandsheet data fetch should bypass stale cached JSON');
+
+const context = {
+  console,
+  document: {
+    getElementById() {
+      return { innerHTML: '', appendChild() {} };
+    },
+    createElement() {
+      return {
+        className: '',
+        textContent: '',
+        appendChild() {},
+        setAttribute() {},
+      };
+    },
+  },
+};
+
+vm.createContext(context);
+vm.runInContext(scriptMatch[1], context);
+
+assert.equal(typeof context.buildAvailabilityMonths, 'function');
+assert.equal(typeof context.buildMemberOutGroups, 'function');
+
+const months = context.buildAvailabilityMonths([
+  '- FRI July 24',
+  '- SAT July 25',
+  '- SUN August 2',
+]);
+
+assert.equal(JSON.stringify(months.map((month) => month.label)), JSON.stringify(['July', 'August']));
+assert.equal(JSON.stringify(Array.from(months[0].openDays)), JSON.stringify([24, 25]));
+assert.equal(months[0].firstWeekday, 3);
+assert.equal(months[0].daysInMonth, 31);
+assert.equal(JSON.stringify(Array.from(months[1].openDays)), JSON.stringify([2]));
+
+const rolloverMonths = context.buildAvailabilityMonths([
+  '- SUN December 27',
+  '- FRI January 1',
+  '- SAT May 1',
+], 2026);
+assert.equal(JSON.stringify(rolloverMonths.map((month) => [month.label, month.year, month.firstWeekday])), JSON.stringify([
+  ['December', 2026, 2],
+  ['January', 2027, 5],
+  ['May', 2027, 6],
+]));
+
+const memberGroups = context.buildMemberOutGroups([
+  '- Alfred: SAT 5-23-2026',
+  '- Alfred: SAT 6-27-2026 to THU 7-2-2026',
+  '- Dave: THU 6-18-2026',
+]);
+
+assert.equal(JSON.stringify(memberGroups), JSON.stringify([
+  {
+    name: 'Alfred',
+    dates: ['Sat May 23', 'Sat Jun 27 - Thu Jul 2'],
+  },
+  {
+    name: 'Dave',
+    dates: ['Thu Jun 18'],
+  },
+]));

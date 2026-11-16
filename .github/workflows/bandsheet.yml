@@ -1,0 +1,33 @@
+name: Update Band Sheet
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+permissions:
+  contents: write
+concurrency:
+  group: bandsheet-update
+  cancel-in-progress: true
+jobs:
+  bandsheet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python3 generate_bandsheet.py
+      - name: Commit generated band sheet data when changed
+        run: |
+          git config user.name "Bot"
+          git config user.email "bot@neon.com"
+          git add bandsheet-data.json docs/bandsheet-data.json
+
+          if git diff --cached --quiet -- bandsheet-data.json docs/bandsheet-data.json; then
+            echo "Band sheet data unchanged; skipping commit."
+            exit 0
+          fi
+
+          git commit -m "Update Band Sheet"
+          git push

@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Blonde - The Band Sheet</title>
+    <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+    <style>
+        @font-face {
+            font-family: 'Overseer';
+            src: url('fonts/Overseer.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Overseer';
+            src: url('fonts/Overseer Bold.otf') format('opentype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Dark mode palette */
+            --bg-primary: #0a0e27;
+            --bg-secondary: #1a1f3a;
+            --bg-tertiary: #252d47;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a8a8a8;
+            --accent-primary: #ff006e;
+            --accent-secondary: #00d9ff;
+            --accent-tertiary: #ffff00;
+            --border-color: #2a2d32;
+            --gradient-1: linear-gradient(135deg, #1a1f3a 0%, #252d47 100%);
+            --gradient-accent: linear-gradient(135deg, #ff006e 0%, #ff3388 100%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 16px;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 32px 24px;
+            }
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: var(--gradient-1);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 0, 110, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+        }
+
+        .next-gig-panel {
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(255, 0, 110, 0.15), rgba(255, 0, 110, 0.05));
+            border: 3px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 140px;
+        }
+
+        .next-gig-label {
+            font-size: 64px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent-primary);
+            margin-bottom: 12px;
+            animation: pulse 0.8s infinite;
+            line-height: 1;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.4;
+                transform: scale(0.95);
+            }
+        }
+
+        .next-gig-text {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.3;
+            word-wrap: break-word;
+        }
+
+        @media (min-width: 1200px) {
+            .next-gig-text {
+                font-size: 32px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .next-gig-panel {
+                flex: auto;
+                min-height: auto;
+            }
+
+            .next-gig-label {
+                font-size: 48px;
+            }
+
+            .next-gig-text {
+                font-size: 24px;
+            }
+        }
+
+        .logo {
+            font-family: 'Overseer', sans-serif;
+            font-size: 80px;
+            font-weight: normal;
+            letter-spacing: 0px;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: 0px;
+            line-height: 0.9;
+        }
+
+        @media (min-width: 768px) {
+            .logo {
+                font-size: 120px;
+            }
+        }
+
+        .title {
+            font-family: 'Overseer', sans-serif;
+            font-size: 48px;
+            font-weight: normal;
+            color: var(--accent-secondary);
+            margin-bottom: 0px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        @media (min-width: 768px) {
+            .title {
+                font-size: 64px;
+            }
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .updated {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .sections-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            background: var(--gradient-1);
+            border: 1px solid var(--border-color);
+            border-top: 2px solid var(--accent-tertiary);
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            opacity: 0.3;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        .entries {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section:has(#this-week) .entries {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .section:has(#free-weekends) .entries {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .section:has(#this-week) .entries,
+            .section:has(#free-weekends) .entries {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .entry {
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            font-size: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .entry:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .entry-label {
+            display: none;
+        }
+
+        .entry-text {
+            font-size: 28px;
+            font-weight: 500;
+        }
+
+        .entry.this-week .entry-text {
+            color: var(--accent-secondary);
+        }
+
+        .entry.gig .entry-text {
+            color: var(--accent-tertiary);
+        }
+
+        .entry.member-out .entry-text {
+            color: var(--accent-primary);
+        }
+
+        .entry.weekend .entry-text {
+            color: #88ff00;
+        }
+
+        .members-out-note {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin: -8px 0 16px;
+        }
+
+        .members-out-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .member-card {
+            background: rgba(255, 0, 110, 0.05);
+            border: 1px solid rgba(255, 0, 110, 0.24);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .member-name {
+            color: var(--accent-primary);
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .member-date-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .member-date-chip {
+            background: rgba(255, 0, 110, 0.12);
+            border: 1px solid rgba(255, 0, 110, 0.52);
+            border-radius: 6px;
+            color: var(--accent-primary);
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.25;
+            padding: 8px 10px;
+        }
+
+        .availability-calendar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .calendar-month {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(136, 255, 0, 0.2);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .calendar-title {
+            color: #88ff00;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .calendar-weekdays,
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px;
+        }
+
+        .calendar-weekday {
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 4px;
+            color: rgba(224, 224, 224, 0.32);
+            display: flex;
+            font-size: 12px;
+            font-weight: 600;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .calendar-day.is-open {
+            background: rgba(136, 255, 0, 0.14);
+            border-color: rgba(136, 255, 0, 0.75);
+            box-shadow: 0 0 12px rgba(136, 255, 0, 0.16);
+            color: #88ff00;
+        }
+
+        .calendar-day.is-empty {
+            border-color: transparent;
+        }
+
+        .availability-note {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin: -8px 0 16px;
+        }
+
+        .empty-state {
+            padding: 16px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        .month-group {
+            margin-top: 16px;
+        }
+
+        .month-header {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--accent-primary);
+            margin: 16px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+
+        .month-group:first-child .month-header {
+            margin-top: 0;
+        }
+
+        .footer {
+            background: var(--gradient-1);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 28px 24px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .footer-main {
+            align-items: center;
+            color: var(--text-primary);
+            display: flex;
+            flex-wrap: wrap;
+            font-size: 30px;
+            font-weight: 800;
+            gap: 8px 14px;
+            justify-content: center;
+            line-height: 1.15;
+            margin-bottom: 16px;
+        }
+
+        .footer-link {
+            color: var(--accent-secondary);
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .footer-label {
+            text-transform: uppercase;
+        }
+
+        .footer-link:hover {
+            color: var(--accent-tertiary);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .footer-main {
+                align-items: center;
+                flex-direction: column;
+                font-size: 23px;
+            }
+        }
+
+        .footer-meta {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .footer-meta strong {
+            color: var(--accent-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="logo">Neon Blonde</div>
+                <h1 class="title">Band Sheet</h1>
+                <div class="updated" id="updated">Updated: Loading...</div>
+            </div>
+            <div class="next-gig-panel">
+                <div class="next-gig-label">Next Gig</div>
+                <div class="next-gig-text" id="next-gig-info">Loading...</div>
+            </div>
+        </div>
+
+        <div class="sections-grid">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">📅</div>
+                    <h2 class="section-title">This Week</h2>
+                </div>
+                <div class="entries" id="this-week">Loading...</div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">🎤</div>
+                    <h2 class="section-title">Booked Gigs</h2>
+                </div>
+                <div class="entries" id="booked-gigs">Loading...</div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">⚠️</div>
+                    <h2 class="section-title">Members Out</h2>
+                </div>
+                <div class="members-out-note">Pink dates mean that member is unavailable.</div>
+                <div class="members-out-grid" id="members-out">Loading...</div>
+                <div class="section" id="cross-band-section" style="display:none"><h2>Cross-band conflicts</h2><div id="cross-band-conflicts"></div></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">🌙</div>
+                    <h2 class="section-title">Weekend Days Open</h2>
+                </div>
+                <div class="availability-note">Green dates are currently open for booking.</div>
+                <div class="availability-calendar" id="availability-calendar"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p class="footer-main">
+                <span class="footer-label">Bookings:</span>
+                <a class="footer-link" href="mailto:neonblondevc@gmail.com">neonblondevc@gmail.com</a>
+            </p>
+            <p class="footer-main">
+                <span class="footer-label">Got questions?</span>
+                <a class="footer-link" href="tel:+18184262710">(818) 426-2710</a>
+            </p>
+            <p class="footer-meta">Last updated: <strong id="last-updated">Loading...</strong></p>
+        </div>
+    </div>
+
+    <script>
+        function addEntries(containerId, entries, entryClass) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (entries.length > 0) {
+                entries.forEach(text => {
+                    const div = document.createElement('div');
+                    div.className = `entry ${entryClass}`;
+                    
+                    const label = document.createElement('div');
+                    label.className = 'entry-label';
+                    label.textContent = entryClass.replace('-', ' ');
+                    
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'entry-text';
+                    textDiv.textContent = text;
+                    
+                    div.appendChild(label);
+                    div.appendChild(textDiv);
+                    container.appendChild(div);
+                });
+            } else {
+                const div = document.createElement('div');
+                div.className = 'empty-state';
+                div.textContent = '(Nothing scheduled)';
+                container.appendChild(div);
+            }
+        }
+
+        function addWeekendsByMonth(containerId, entries) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (!entries.length) {
+                const div = document.createElement('div');
+                div.className = 'empty-state';
+                div.textContent = '(No weekends open)';
+                container.appendChild(div);
+                return;
+            }
+
+            let currentMonth = null;
+            let monthGroup = null;
+
+            entries.forEach(text => {
+                const parts = text.replace('- ', '').split(' ');
+                const month = parts[1];
+                
+                if (month !== currentMonth) {
+                    currentMonth = month;
+                    monthGroup = document.createElement('div');
+                    monthGroup.className = 'month-group';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'month-header';
+                    header.textContent = month.toUpperCase();
+                    monthGroup.appendChild(header);
+                    container.appendChild(monthGroup);
+                }
+
+                const div = document.createElement('div');
+                div.className = 'entry weekend';
+                
+                const textDiv = document.createElement('div');
+                textDiv.className = 'entry-text';
+                textDiv.textContent = text;
+                div.appendChild(textDiv);
+                monthGroup.appendChild(div);
+            });
+        }
+
+        function parseMemberOutEntry(text) {
+            const match = text.match(/^-\s+([^:]+):\s+(.+)$/);
+            if (!match) {
+                return null;
+            }
+
+            return {
+                name: match[1],
+                dateText: match[2],
+            };
+        }
+
+        function formatShortDate(dateText) {
+            const match = dateText.match(/^([A-Z]{3})\s+(\d{1,2})-(\d{1,2})-(\d{4})$/);
+            if (!match) {
+                return dateText;
+            }
+
+            const dayName = match[1].charAt(0) + match[1].slice(1).toLowerCase();
+            const monthName = MONTH_NAMES[Number(match[2]) - 1].slice(0, 3);
+            return `${dayName} ${monthName} ${Number(match[3])}`;
+        }
+
+        function formatMemberOutDate(dateText) {
+            const rangeParts = dateText.split(' to ');
+            if (rangeParts.length === 2) {
+                return `${formatShortDate(rangeParts[0])} - ${formatShortDate(rangeParts[1])}`;
+            }
+
+            return formatShortDate(dateText);
+        }
+
+        function buildMemberOutGroups(entries) {
+            const groupsByName = new Map();
+
+            entries
+                .map(parseMemberOutEntry)
+                .filter(Boolean)
+                .forEach(({ name, dateText }) => {
+                    if (!groupsByName.has(name)) {
+                        groupsByName.set(name, {
+                            name,
+                            dates: [],
+                        });
+                    }
+
+                    groupsByName.get(name).dates.push(formatMemberOutDate(dateText));
+                });
+
+            return Array.from(groupsByName.values());
+        }
+
+        function renderMembersOut(entries) {
+            const container = document.getElementById('members-out');
+            container.innerHTML = '';
+
+            const groups = buildMemberOutGroups(entries);
+            if (!groups.length) {
+                const div = document.createElement('div');
+                div.className = 'empty-state';
+                div.textContent = '(No members out)';
+                container.appendChild(div);
+                return;
+            }
+
+            groups.forEach(group => {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+
+                const name = document.createElement('div');
+                name.className = 'member-name';
+                name.textContent = group.name;
+                card.appendChild(name);
+
+                const chips = document.createElement('div');
+                chips.className = 'member-date-chips';
+
+                group.dates.forEach(dateText => {
+                    const chip = document.createElement('div');
+                    chip.className = 'member-date-chip';
+                    chip.textContent = dateText;
+                    chips.appendChild(chip);
+                });
+
+                card.appendChild(chips);
+                container.appendChild(card);
+            });
+        }
+
+        const MONTH_NAMES = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        function parseOpenWeekendEntry(text) {
+            const match = text.match(/^-\s+[A-Z]{3}\s+([A-Za-z]+)\s+(\d{1,2})(?:\s+(\d{4}))?$/);
+            if (!match) {
+                return null;
+            }
+
+            const monthIndex = MONTH_NAMES.indexOf(match[1]);
+            if (monthIndex === -1) {
+                return null;
+            }
+
+            return {
+                monthIndex,
+                monthName: match[1],
+                day: Number(match[2]),
+                year: match[3] ? Number(match[3]) : null,
+            };
+        }
+
+        function buildAvailabilityMonths(entries, baseYear = new Date().getFullYear()) {
+            const monthsByKey = new Map();
+            let currentYear = baseYear;
+            let lastMonthIndex = null;
+
+            entries
+                .map(parseOpenWeekendEntry)
+                .filter(Boolean)
+                .forEach(({ monthIndex, monthName, day, year }) => {
+                    if (year !== null) {
+                        currentYear = year;
+                    } else if (lastMonthIndex !== null && monthIndex < lastMonthIndex) {
+                        currentYear += 1;
+                    }
+                    lastMonthIndex = monthIndex;
+
+                    const key = `${currentYear}-${monthIndex}`;
+                    if (!monthsByKey.has(key)) {
+                        monthsByKey.set(key, {
+                            label: monthName,
+                            year: currentYear,
+                            firstWeekday: new Date(currentYear, monthIndex, 1).getDay(),
+                            daysInMonth: new Date(currentYear, monthIndex + 1, 0).getDate(),
+                            openDays: new Set(),
+                        });
+                    }
+
+                    monthsByKey.get(key).openDays.add(day);
+                });
+
+            return Array.from(monthsByKey.values());
+        }
+
+        function renderAvailabilityCalendar(entries) {
+            const container = document.getElementById('availability-calendar');
+            container.innerHTML = '';
+
+            const months = buildAvailabilityMonths(entries);
+            if (!months.length) {
+                return;
+            }
+
+            months.forEach(month => {
+                const monthEl = document.createElement('div');
+                monthEl.className = 'calendar-month';
+
+                const title = document.createElement('div');
+                title.className = 'calendar-title';
+                title.textContent = month.label;
+                monthEl.appendChild(title);
+
+                const weekdays = document.createElement('div');
+                weekdays.className = 'calendar-weekdays';
+                ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(day => {
+                    const dayEl = document.createElement('div');
+                    dayEl.className = 'calendar-weekday';
+                    dayEl.textContent = day;
+                    weekdays.appendChild(dayEl);
+                });
+                monthEl.appendChild(weekdays);
+
+                const grid = document.createElement('div');
+                grid.className = 'calendar-grid';
+
+                for (let i = 0; i < month.firstWeekday; i += 1) {
+                    const empty = document.createElement('div');
+                    empty.className = 'calendar-day is-empty';
+                    grid.appendChild(empty);
+                }
+
+                for (let day = 1; day <= month.daysInMonth; day += 1) {
+                    const dayEl = document.createElement('div');
+                    dayEl.className = month.openDays.has(day)
+                        ? 'calendar-day is-open'
+                        : 'calendar-day';
+                    dayEl.textContent = day;
+                    if (month.openDays.has(day)) {
+                        dayEl.setAttribute('aria-label', `${month.label} ${day} is open`);
+                    }
+                    grid.appendChild(dayEl);
+                }
+
+                monthEl.appendChild(grid);
+                container.appendChild(monthEl);
+            });
+        }
+
+        fetch(`bandsheet-data.json?v=${Date.now()}`, { cache: 'no-store' })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('updated').textContent = `Updated: ${data.updated}`;
+                document.getElementById('last-updated').textContent = new Date().toLocaleString();
+
+                // Extract next gig
+                if (data.booked_gigs && data.booked_gigs.length > 0) {
+                    document.getElementById('next-gig-info').textContent = data.booked_gigs[0];
+                } else {
+                    document.getElementById('next-gig-info').textContent = 'No upcoming gigs';
+                }
+
+                addEntries('this-week', data.this_week, 'this-week');
+                addEntries('booked-gigs', data.booked_gigs, 'gig');
+                renderMembersOut(data.members_out);
+                if (data.cross_band_conflicts && data.cross_band_conflicts.length) { document.getElementById('cross-band-section').style.display = 'block'; addEntries('cross-band-conflicts', data.cross_band_conflicts, 'gig'); }
+                renderAvailabilityCalendar(data.free_weekends);
+            })
+            .catch(error => {
+                console.error('Error loading band sheet:', error);
+                const container = document.querySelector('.container');
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'color: var(--accent-primary); text-align: center; padding: 40px;';
+                errorDiv.textContent = 'Error loading band sheet data. Make sure bandsheet-data.json is in the same directory.';
+                container.appendChild(errorDiv);
+            });
+    </script>
+</body>
+</html>
+

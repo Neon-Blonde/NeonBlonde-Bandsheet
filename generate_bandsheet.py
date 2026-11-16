@@ -1,0 +1,281 @@
+#!/usr/bin/env python3
+"""
+Generate Neon Blonde Band Sheet from public Google Calendar ICS feed.
+No auth required — calendar is public.
+Creates a receipt document in Google Drive showing what was generated.
+"""
+
+import json
+import os
+import sys
+import shutil
+import requests
+from icalendar import Calendar
+from datetime import datetime, timedelta, date, time
+from zoneinfo import ZoneInfo
+
+# Load config
+with open("config.json") as f:
+    CONFIG = json.load(f)
+
+CALENDAR_ID = CONFIG.get("calendar_id", "neonblondevc@gmail.com")
+ICS_URL = f"https://calendar.google.com/calendar/ical/{CALENDAR_ID.replace('@', '%40')}/public/basic.ics"
+PT_TZ = ZoneInfo("America/Los_Angeles")
+DATA_PATH = "bandsheet-data.json"
+DOCS_DATA_PATH = "docs/bandsheet-data.json"
+SIN_CHONIES_ICAL_URL = os.getenv("SIN_CHONIES_ICAL_URL", "https://calendar.google.com/calendar/ical/4fa4b7d105b67016c021fb6f7feddaffde40f5b734d900a90b2737f4027b3dc9%40group.calendar.google.com/public/basic.ics")
+
+MEMBER_OUT_KEYWORDS = {"out", "unavailable", "absent", "blocked", "vacation", "off"}
+
+
+def fetch_events():
+    print(f"[INFO] Fetching ICS feed from Google Calendar...")
+    resp = requests.get(ICS_URL, timeout=30)
+    resp.raise_for_status()
+    cal = Calendar.from_ical(resp.content)
+
+    today = datetime.now(PT_TZ).date()
+    horizon_end = date(2027, 6, 30)
+    events = []
+
+    for component in cal.walk():
+        if component.name != "VEVENT":
+            continue
+
+        summary = str(component.get("SUMMARY", "")).strip()
+        location = str(component.get("LOCATION", "")).strip()
+
+        dtstart = component.get("DTSTART").dt
+        dtend = component.get("DTEND").dt
+
+        # Normalize to date + optional time
+        if isinstance(dtstart, datetime):
+            dtstart = dtstart.astimezone(PT_TZ)
+            start_date = dtstart.date()
+            start_time = dtstart.time()
+        else:
+            start_date = dtstart
+            start_time = None
+
+        if isinstance(dtend, datetime):
+            dtend = dtend.astimezone(PT_TZ)
+            end_date = dtend.date()
+        else:
+            end_date = dtend
+
+        if start_date < today or start_date > horizon_end:
+            continue
+
+        events.append({
+            "summary": summary,
+            "location": location,
+            "start_date": start_date,
+            "start_time": start_time,
+            "end_date": end_date,
+        })
+
+    print(f"[OK] {len(events)} events loaded")
+    return events
+
+
+def fetch_cross_band_conflicts(neon_events):
+    """Return Sin Chonies events sharing a date with a Neon Blonde gig."""
+    resp = requests.get(SIN_CHONIES_ICAL_URL, timeout=30)
+    resp.raise_for_status()
+    cal = Calendar.from_ical(resp.content)
+    neon_dates = {e["start_date"] for e in neon_events}
+    today = datetime.now(PT_TZ).date()
+    conflicts = []
+    for component in cal.walk():
+        if component.name != "VEVENT" or not component.get("DTSTART"):
+            continue
+        dt = component.get("DTSTART").dt
+        event_date_value = dt.astimezone(PT_TZ).date() if isinstance(dt, datetime) else dt
+        if event_date_value < today or event_date_value not in neon_dates:
+            continue
+        title = str(component.get("SUMMARY", "Sin Chonies booking")).strip()
+        conflicts.append(f"{event_date_value.strftime('%a %m-%d-%Y').upper()} — Sin Chonies: {title}")
+    return sorted(set(conflicts))
+
+
+def parse_events(events):
+    gigs = []
+    member_outs = {}
+
+    for e in events:
+        title = e["summary"].lower()
+        is_out = any(kw in title for kw in MEMBER_OUT_KEYWORDS)
+
+        if is_out:
+            name = e["summary"].split()[0].capitalize()
+            if name not in member_outs:
+                member_outs[name] = []
+            member_outs[name].append((e["start_date"], e["end_date"]))
+        else:
+            venue = e["summary"]
+            city = e["location"]
+            # If location already contains the venue name, use it as-is
+            if city and venue.lower() in city.lower():
+                display = city
+            else:
+                display = f"{venue}, {city}" if city else venue
+            gigs.append({
+                "date": e["start_date"],
+                "time": e["start_time"],
+                "venue": display,
+                "title": e["summary"],
+            })
+
+    gigs.sort(key=lambda x: (x["date"], x["time"] or time.min))
+    return gigs, member_outs
+
+
+def format_time(t):
+    if not t:
+        return None
+    hour, minute = t.hour, t.minute
+    period = "PM" if hour >= 12 else "AM"
+    h = hour % 12 or 12
+    return f"@{h}:{minute:02d}{period}" if minute else f"@{h}{period}"
+
+
+def is_blocked(d, member_outs):
+    return any(
+        start <= d < end
+        for dates in member_outs.values()
+        for start, end in dates
+    )
+
+
+def comparable_bandsheet(data):
+    return {key: value for key, value in data.items() if key != "updated"}
+
+
+def load_existing_bandsheet(path):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+    except json.JSONDecodeError as e:
+        print(f"[WARN] Ignoring invalid existing {path}: {e}")
+        return None
+
+
+def set_updated_timestamp(bandsheet, existing_path):
+    existing = load_existing_bandsheet(existing_path)
+    now = datetime.now(PT_TZ)
+    today_label = now.strftime("%B %d, %Y")
+    previous = existing.get("updated", "") if existing else ""
+
+    # Refresh the displayed date at least once per day, even when the
+    # calendar contents have not changed. This keeps the band sheet's
+    # freshness indicator from becoming permanently stale.
+    if previous.startswith(today_label) and existing and comparable_bandsheet(existing) == comparable_bandsheet(bandsheet):
+        bandsheet["updated"] = previous
+        print("[OK] Band sheet data unchanged; preserving today's timestamp")
+    else:
+        bandsheet["updated"] = now.strftime("%B %d, %Y @ %-I:%M %p PT")
+        print("[OK] Refreshed daily updated timestamp")
+    return bandsheet
+
+
+def generate_bandsheet(gigs, member_outs, conflicts):
+    today = datetime.now(PT_TZ).date()
+    week_end = today + timedelta(days=7)
+    horizon_end = date(2027, 6, 30)
+
+    # THIS WEEK
+    this_week_raw = []
+    for gig in gigs:
+        if today <= gig["date"] < week_end:
+            t = format_time(gig["time"])
+            entry = f"{gig['date'].strftime('%A').upper()}{' ' + t if t else ''} {gig['venue']}"
+            this_week_raw.append((gig["date"], gig["time"] or time.min, entry))
+
+    for name, ranges in member_outs.items():
+        for start, end in ranges:
+            if today <= start < week_end:
+                entry = f"{name.upper()} OUT {start.strftime('%A').upper()}"
+                this_week_raw.append((start, time.min, entry))
+
+    this_week_raw.sort(key=lambda x: (x[0], x[1]))
+    this_week = [e[2] for e in this_week_raw]
+
+    # BOOKED GIGS
+    booked_gigs = []
+    for gig in gigs:
+        day = gig["date"].strftime("%a").upper()
+        d = gig["date"].strftime("%-m-%-d-%Y")
+        t = format_time(gig["time"])
+        entry = f"{day} {d}{' ' + t if t else ''} — {gig['venue']}"
+        booked_gigs.append(entry)
+
+    # MEMBERS OUT
+    members_out = []
+    for name in sorted(member_outs):
+        for start, end in sorted(member_outs[name]):
+            ds = start.strftime("%a").upper()
+            d1 = start.strftime("%-m-%-d-%Y")
+            if (end - start).days <= 1:
+                members_out.append(f"- {name}: {ds} {d1}")
+            else:
+                actual_end = end - timedelta(days=1)
+                de = actual_end.strftime("%a").upper()
+                d2 = actual_end.strftime("%-m-%-d-%Y")
+                members_out.append(f"- {name}: {ds} {d1} to {de} {d2}")
+
+    # WEEKEND DAYS OPEN
+    weekend_days_open = []
+    check = today
+    gig_dates = {g["date"] for g in gigs}
+    while check <= horizon_end:
+        if check.weekday() in (4, 5, 6):  # Fri, Sat, Sun
+            if check not in gig_dates and not is_blocked(check, member_outs):
+                weekend_days_open.append(f"- {check.strftime('%a').upper()} {check.strftime('%B %-d')}")
+        check += timedelta(days=1)
+
+    return {
+        "this_week": this_week,
+        "booked_gigs": booked_gigs,
+        "members_out": members_out,
+        "free_weekends": weekend_days_open,
+        "cross_band_conflicts": conflicts,
+    }
+
+
+def main():
+    print("=" * 60)
+    print("NEON BLONDE BAND SHEET GENERATOR")
+    print("=" * 60)
+
+    events = fetch_events()
+    gigs, member_outs = parse_events(events)
+    conflicts = fetch_cross_band_conflicts(events)
+    for conflict in conflicts:
+        print(f"::warning title=Cross-band booking conflict::{conflict}")
+    print(f"[DEBUG] {len(gigs)} gigs, {len(member_outs)} members with outs")
+
+    bandsheet = generate_bandsheet(gigs, member_outs, conflicts)
+    bandsheet = set_updated_timestamp(bandsheet, DATA_PATH)
+
+    with open(DATA_PATH, "w") as f:
+        json.dump(bandsheet, f, indent=2)
+        f.write("\n")
+    print(f"[OK] {DATA_PATH} written")
+
+    # Copy to docs/ folder for GitHub Pages
+    try:
+        shutil.copy(DATA_PATH, DOCS_DATA_PATH)
+        print("[OK] bandsheet-data.json copied to docs/")
+    except Exception as e:
+        print(f"[WARN] Failed to copy to docs/: {e}")
+
+    print(f"\n  {len(bandsheet['booked_gigs'])} gigs")
+    print(f"  {len(bandsheet['members_out'])} member outs")
+    print(f"  {len(bandsheet['free_weekends'])} open weekend days")
+    print(f"  Updated: {bandsheet['updated']}")
+
+
+if __name__ == "__main__":
+    main()
