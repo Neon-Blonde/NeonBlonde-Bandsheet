@@ -21,8 +21,8 @@ from googleapiclient.discovery import build
 CREDENTIALS_FILE = "credentials.json"
 TOKEN_FILE = "check_token.json"
 DRIVE_FOLDER_ID = "1ty5TilWvRixwobpkuHzigcluss0CTUl-"
-BANDSHEET_URL = "https://mlmil.github.io/NeonBlonde-Bandsheet/bandsheet-data.json"
-ACTIONS_URL = "https://api.github.com/repos/mlmil/NeonBlonde-Bandsheet/actions/runs?per_page=5"
+BANDSHEET_URL = "https://neon-blonde.github.io/NeonBlonde-Bandsheet/bandsheet-data.json"
+ACTIONS_URL = "https://api.github.com/repos/Neon-Blonde/NeonBlonde-Bandsheet/actions/runs?per_page=5"
 REPORT_TO = ["neonblondevc@gmail.com"]
 SEND_FROM = "neonblondevc@gmail.com"
 PT_TZ = ZoneInfo("America/Los_Angeles")

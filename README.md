@@ -49,7 +49,7 @@ NeonBlonde-Bandsheet/
 
 ## Live Site
 
-**https://mlmil.github.io/NeonBlonde-Bandsheet/**
+**https://neon-blonde.github.io/NeonBlonde-Bandsheet/**
 
 ## Setup
 
