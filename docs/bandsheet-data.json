@@ -1,12 +1,11 @@
 {
   "this_week": [
-    "SATURDAY @8PM Ms Special, Santa Barbara",
     "SUNDAY @2PM TOPA-TOPA, VENTURA",
     "WEDNESDAY @6PM Tonys Pizza, Ventura",
-    "KYLE OUT FRIDAY"
+    "KYLE OUT FRIDAY",
+    "SATURDAY @6PM Leashless, Ventura"
   ],
   "booked_gigs": [
-    "SAT 11-21-2026 @8PM \u2014 Ms Special, Santa Barbara",
     "SUN 11-22-2026 @2PM \u2014 TOPA-TOPA, VENTURA",
     "WED 11-25-2026 @6PM \u2014 Tonys Pizza, Ventura",
     "SAT 11-28-2026 @6PM \u2014 Leashless, Ventura",
@@ -107,5 +106,5 @@
   "cross_band_conflicts": [
     "SAT 11-28-2026 \u2014 Sin Chonies: Neon blonde"
   ],
-  "updated": "November 21, 2026 @ 2:15 PM PT"
+  "updated": "November 22, 2026 @ 12:40 AM PT"
 }
