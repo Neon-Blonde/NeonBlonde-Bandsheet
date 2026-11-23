@@ -94,6 +94,8 @@ def fetch_cross_band_conflicts(neon_events):
         if event_date_value < today or event_date_value not in neon_dates:
             continue
         title = str(component.get("SUMMARY", "Sin Chonies booking")).strip()
+        if "neon blonde" in title.lower():
+            continue
         conflicts.append(f"{event_date_value.strftime('%a %m-%d-%Y').upper()} — Sin Chonies: {title}")
     return sorted(set(conflicts))
 
