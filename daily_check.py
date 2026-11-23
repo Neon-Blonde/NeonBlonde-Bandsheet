@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Neon Blonde Daily Check
-Runs 4 checks and emails a status report to neonblondevc@gmail.com and mike@sparkai805.com
+Runs 3 checks and emails a status report to neonblondevc@gmail.com
 """
 
 import json
@@ -20,7 +20,6 @@ from googleapiclient.discovery import build
 # ── Config ──────────────────────────────────────────────────────────────────
 CREDENTIALS_FILE = "credentials.json"
 TOKEN_FILE = "check_token.json"
-DRIVE_FOLDER_ID = "1ty5TilWvRixwobpkuHzigcluss0CTUl-"
 BANDSHEET_URL = "https://neon-blonde.github.io/NeonBlonde-Bandsheet/bandsheet-data.json"
 ACTIONS_URL = "https://api.github.com/repos/Neon-Blonde/NeonBlonde-Bandsheet/actions/runs?per_page=5"
 REPORT_TO = ["neonblondevc@gmail.com"]
@@ -28,7 +27,6 @@ SEND_FROM = "neonblondevc@gmail.com"
 PT_TZ = ZoneInfo("America/Los_Angeles")
 
 SCOPES = [
-    "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/calendar.readonly",
@@ -208,83 +206,6 @@ def check_calendar(calendar, bandsheet_gigs):
     return "\n".join(lines)
 
 
-# ── Check 4: Folder Audit ────────────────────────────────────────────────────
-def check_folders(drive, bandsheet_gigs):
-    action_needed = []
-    all_clear = []
-
-    for gig_line in bandsheet_gigs:
-        # Extract venue and date from line like "FRI 5-16-2026 @8PM — The Sewer, Ventura"
-        if " — " not in gig_line:
-            continue
-        venue_part = gig_line.split(" — ")[1]
-        venue_name = venue_part.split(",")[0].strip()
-        date_part = gig_line.split(" ")[1]  # e.g. "5-16-2026"
-
-        try:
-            m, d, y = date_part.split("-")
-            folder_name = f"{venue_name} - {int(m)}/{int(d)}/{y}"
-            safe = folder_name.replace("'", "\\'")
-            q = f"name = '{safe}' and '{DRIVE_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
-            results = drive.files().list(q=q, spaces="drive", fields="files(id, name)", pageSize=1).execute()
-            folders = results.get("files", [])
-
-            if not folders:
-                action_needed.append(f"  NO FOLDER: {folder_name}")
-                continue
-
-            folder_id = folders[0]["id"]
-            files_result = drive.files().list(
-                q=f"'{folder_id}' in parents and trashed = false",
-                spaces="drive",
-                fields="files(id, name, mimeType)"
-            ).execute()
-            files = files_result.get("files", [])
-
-            has_notes = any(
-                "notes" in f["name"].lower() and f["mimeType"] == "application/vnd.google-apps.document"
-                for f in files
-            )
-            has_receipt = any(
-                ("receipt" in f["name"].lower() or "bandsheet" in f["name"].lower())
-                and f["mimeType"] == "text/plain"
-                for f in files
-            )
-            has_flyer = any(
-                f["mimeType"] in ["application/pdf"] or
-                any(f["name"].lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"])
-                for f in files
-            )
-
-            missing = []
-            if not has_notes:
-                missing.append("Notes doc")
-            if not has_receipt:
-                missing.append("Receipt")
-            if not has_flyer:
-                missing.append("Flyer")
-
-            if missing:
-                action_needed.append(f"  MISSING {', '.join(missing)}: {venue_name} ({date_part})")
-            else:
-                all_clear.append(f"  {venue_name} ({date_part}): Notes + Receipt + Flyer")
-
-        except Exception as e:
-            action_needed.append(f"  ERROR checking {venue_name}: {e}")
-
-    lines = []
-    if action_needed:
-        lines.append("ACTION NEEDED:")
-        lines.extend(action_needed)
-    if all_clear:
-        lines.append("ALL CLEAR:")
-        lines.extend(all_clear)
-    if not action_needed and not all_clear:
-        lines.append("  No gig folders found")
-
-    return "\n".join(lines)
-
-
 # ── Send Email ───────────────────────────────────────────────────────────────
 def send_report(gmail, subject, body):
     message = MIMEText(body)
@@ -304,7 +225,6 @@ def main():
 
     creds = get_credentials()
     gmail = build("gmail", "v1", credentials=creds)
-    drive = build("drive", "v3", credentials=creds)
     calendar = build("calendar", "v3", credentials=creds)
 
     today = datetime.now(PT_TZ).strftime("%B %d, %Y")
@@ -316,7 +236,7 @@ def main():
     print("[2] Email scan...")
     email_report = check_emails(gmail)
 
-    # Get bandsheet gigs for checks 3 & 4
+    # Get bandsheet gigs for check 3
     try:
         bandsheet_gigs = requests.get(BANDSHEET_URL, timeout=10).json().get("booked_gigs", [])
     except Exception:
@@ -325,11 +245,8 @@ def main():
     print("[3] Calendar consistency...")
     cal_report = check_calendar(calendar, bandsheet_gigs)
 
-    print("[4] Folder audit...")
-    folder_report = check_folders(drive, bandsheet_gigs)
-
     # Determine subject
-    issues = bs_status != "GREEN" or "CONFLICT" in cal_report or "ACTION NEEDED" in folder_report or "NEEDS REPLY" in email_report or "URGENT" in email_report
+    issues = bs_status != "GREEN" or "CONFLICT" in cal_report or "NEEDS REPLY" in email_report or "URGENT" in email_report
     subject = f"Neon Blonde Daily Check - {'Action Needed' if issues else 'All Clear'} {today}"
 
     # Upcoming gigs (next 30 days)
@@ -357,9 +274,6 @@ EMAIL SCAN:
 SCHEDULE CONFLICTS:
 {cal_report}
 
-FOLDER AUDIT:
-{folder_report}
-
 UPCOMING GIGS (next 30 days):
 {chr(10).join(upcoming) if upcoming else '  None in the next 30 days'}
 
@@ -367,7 +281,7 @@ UPCOMING GIGS (next 30 days):
 Neon Blonde Validation Agent
 """
 
-    print("[5] Sending report...")
+    print("[4] Sending report...")
     send_report(gmail, subject, body)
     print("[DONE]")
 
